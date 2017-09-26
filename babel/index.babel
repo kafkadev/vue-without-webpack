@@ -1,0 +1,125 @@
+const User = { 
+  props: {
+    userId: {
+      type: Number,
+      required: true
+    },
+    userData: {
+      type: Object,
+      required: false // User can accept a userData object on params, or not. It's totally optional.
+    }
+  }, 
+  template: `
+    <div>
+      <h3>User ({{userId}})</h3>
+      <div v-if="userData">
+        <p>This route makes use of some option data that was passed in:</p>
+        <p>{{userData.name}}({{userData.age}} yrs old)</p>
+      </div>
+    </div>
+  `, 
+  methods: {
+  }
+}
+
+const UserList = {
+  data() {
+    return {
+      selectedUser: {} // selected user data. Place this here to make sure it's reactive.
+    }
+  },
+  template: `
+    <div class="userList">
+      <div class="left">
+        <h2>User List</h2>
+        <p>Click a user below and we'll use the User component now as a child component to display the data:</p>
+        <ul>
+          <li class="userLink" @click="loadUserData(123)">User 123</li>
+          <li class="userLink" @click="loadUserData(456)">User 456</li>
+        </ul>
+      </div>
+      <div class="right" v-if="selectedUser.userId">
+
+        <!-- User is here all the time, and we just display it when we need to. 
+              We give it the data it needs as a prop. -->
+        <User :userId="selectedUser.userId" :userData="selectedUser.userData">
+      </div>
+    </div>
+  `,
+  methods: {
+    loadUserData(id) {
+      // this could be some ajax call to get user data from an API, but we'll just set some dummy data:
+      this.selectedUser = id === 123
+                ? { userId: 123 }
+                : { userId: 456, userData: {age: 37, name: 'Patrick'}}
+    }
+  },
+  /* 
+    On the UserList component we use the User component as a child component 
+    and pass data down via props.
+  */
+  components: {
+    User
+  }
+}
+
+const Sidebar = {
+  template: `<div>This is the sidebar. No props here.</div>`
+}
+
+const NamedWrapper = {
+  template: `
+    <div>
+      <h2>Users loaded into named views:</h2>
+      <ul>
+        <li><router-link :to="{ name: 'named_id', params: { userId: 123 } }">User 123</router-link></li>
+        <li><router-link :to="{ name: 'named_id', params: { userId: 456, userData: { age: 37, name: 'Patrick'} } }">User 456</router-link></li>
+      </ul>
+      <div class="userList">
+        <router-view class="left" name="user_details"></router-view>
+        <router-view class="right" name="sidebar"></router-view>
+      </div>
+    </div>
+  `, 
+}
+
+
+
+
+/* Router and App setup: */
+const routes = [
+  {
+    path: '/user',
+    name: 'userList',
+    component: UserList
+  },
+  
+  // use /named as the parent route to wrap our two named views:
+  {
+    path: '/named',
+    name: 'named',
+    component: NamedWrapper,
+    children: [
+      {
+        path: '/user/:userId',
+        name: 'named_id',
+        components: { user_details: User, sidebar: Sidebar },
+        props: { user_details: true, sidebar: false }
+      }
+    ]
+  },
+  {
+    path: '/user/:userId',
+    name: 'user',
+    component: User,
+    props: true,
+  }
+]
+
+const router = new VueRouter({
+  routes
+})
+
+const app = new Vue({
+  router
+}).$mount('#app')
